@@ -9,8 +9,7 @@ const md5 = require('md5');
 const blue = rgb(86 / 255, 107 / 255, 255 / 255)
 
 const config = {
-  hostname: 'localhost',
-  port: 8088
+  port: process.env.PORT || 8088
 }
 
 fetch('https://github.com/googlefonts/opensans/raw/main/fonts/ttf/OpenSans-Regular.ttf').then((res) => res.arrayBuffer()).then(openSansBytes => {
@@ -53,7 +52,7 @@ fetch('https://github.com/googlefonts/opensans/raw/main/fonts/ttf/OpenSans-Regul
     res.end(Buffer.from(pdfBytes))
   });
 
-  server.listen(config.port, config.hostname, () => {
-    console.info(`Server running at http://${config.hostname}:${config.port}/`);
+  server.listen(config.port, () => {
+    console.info(`Server running at http://localhost:${config.port}/`);
   });
 });

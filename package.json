@@ -9,5 +9,8 @@
     "md5": "^2.3.0",
     "node-fetch": "^2.6.1",
     "pdf-lib": "^1.16.0"
+  },
+  "scripts": {
+    "start": "node index.js"
   }
 }
