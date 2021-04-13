@@ -17,6 +17,10 @@ fetch('https://github.com/googlefonts/opensans/raw/main/fonts/ttf/OpenSans-Regul
   const server = http.createServer(async (req, res) => {
     const queryObject = url.parse(req.url, true).query;
 
+    if (!queryObject.data) {
+      return res.end('Howdy!')
+    }
+
 
     const signature = JSON.parse(decodeURIComponent(atob(queryObject.data)));
 
