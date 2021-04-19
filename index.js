@@ -6,28 +6,39 @@ const fetch = require("node-fetch");
 const fontkit = require("@pdf-lib/fontkit");
 const md5 = require("md5");
 
+const pipe = (...funcs) => (firstArg) =>
+  funcs.reduce((acc, curr) => curr(acc), firstArg);
+
 const makeCompensateRotation = ({ pageRotation, dimensions }) => ({
   x,
   y,
   height,
-}) => {
-  let drawX = null;
-  let drawY = null;
-  if (pageRotation.angle === 90) {
-    drawX = y + height;
-    drawY = dimensions.height - x;
-  } else if (pageRotation.angle === 180) {
-    drawX = dimensions.width - x;
-    drawY = dimensions.height - y - height;
-  } else if (pageRotation.angle === 270) {
-    drawX = dimensions.width - y - height;
-    drawY = x;
-  } else {
-    drawX = x;
-    drawY = y;
-  }
-  return { x: drawX, y: dimensions.height - drawY };
-};
+}) =>
+  pipe(
+    () => {
+      if (pageRotation.angle === 90) {
+        return {
+          x: y + height,
+          y: dimensions.height - x,
+        };
+      } else if (pageRotation.angle === 180) {
+        return {
+          x: dimensions.width - x,
+          y: dimensions.height - y - height,
+        };
+      } else if (pageRotation.angle === 270) {
+        return {
+          x: dimensions.width - y - height,
+          y: x,
+        };
+      }
+      return {
+        x,
+        y,
+      };
+    },
+    ({ x, y }) => ({ x, y: dimensions.height - y })
+  )();
 
 const blue = rgb(86 / 255, 107 / 255, 255 / 255);
 
