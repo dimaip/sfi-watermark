@@ -34,7 +34,7 @@ const makeCompensateRotation = ({ pageRotation, dimensions }) => ({
       }
       return {
         x,
-        y,
+        y: y + height,
       };
     },
     ({ x, y }) => ({ x, y: dimensions.height - y })
