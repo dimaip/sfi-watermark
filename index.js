@@ -69,7 +69,7 @@ fetch(
         throw new Error("Invalid URL");
       }
 
-      const existingPdfBytes = await fetch(encodeURI(signature.url)).then((res) =>
+      const existingPdfBytes = await fetch(signature.url).then((res) =>
         res.arrayBuffer()
       );
 
@@ -79,6 +79,8 @@ fetch(
 
       const pages = pdfDoc.getPages();
       const firstPage = pages[0];
+
+      const { height } = firstPage.getSize();
 
       const dimensions = firstPage.getSize();
       const pageRotation = firstPage.getRotation();
