@@ -96,7 +96,7 @@ fetch(
           y: 30,
           height: 100,
         }),
-        width: 320,
+        width: 350,
         height: 100,
         borderWidth: 2,
         borderColor: blue,
