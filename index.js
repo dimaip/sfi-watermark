@@ -110,7 +110,7 @@ fetch(
         "\nДолжность: " +
         signature.signeePosition +
         "\nУникальный программный ключ:\n" +
-        md5(signature.signee);
+        md5(signature.url);
 
       firstPage.drawText(title, {
         ...compensateRotation({
