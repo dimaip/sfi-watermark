@@ -1,44 +1,43 @@
 const http = require("http");
 const url = require("url");
 const atob = require("atob");
-const { PDFDocument, rgb, degrees } = require("pdf-lib");
+const { PDFDocument, rgb } = require("pdf-lib");
 const fetch = require("node-fetch");
 const fontkit = require("@pdf-lib/fontkit");
-const md5 = require("md5");
 
-const pipe = (...funcs) => (firstArg) =>
-  funcs.reduce((acc, curr) => curr(acc), firstArg);
+const pipe =
+  (...funcs) =>
+  (firstArg) =>
+    funcs.reduce((acc, curr) => curr(acc), firstArg);
 
-const makeCompensateRotation = ({ pageRotation, dimensions }) => ({
-  x,
-  y,
-  height,
-}) =>
-  pipe(
-    () => {
-      if (pageRotation.angle === 90) {
+const makeCompensateRotation =
+  ({ pageRotation, dimensions }) =>
+  ({ x, y, height }) =>
+    pipe(
+      () => {
+        if (pageRotation.angle === 90) {
+          return {
+            x: y + height,
+            y: dimensions.height - x,
+          };
+        } else if (pageRotation.angle === 180) {
+          return {
+            x: dimensions.width - x,
+            y: dimensions.height - y - height,
+          };
+        } else if (pageRotation.angle === 270) {
+          return {
+            x: dimensions.width - y - height,
+            y: x,
+          };
+        }
         return {
-          x: y + height,
-          y: dimensions.height - x,
+          x,
+          y: y + height,
         };
-      } else if (pageRotation.angle === 180) {
-        return {
-          x: dimensions.width - x,
-          y: dimensions.height - y - height,
-        };
-      } else if (pageRotation.angle === 270) {
-        return {
-          x: dimensions.width - y - height,
-          y: x,
-        };
-      }
-      return {
-        x,
-        y: y + height,
-      };
-    },
-    ({ x, y }) => ({ x, y: dimensions.height - y })
-  )();
+      },
+      ({ x, y }) => ({ x, y: dimensions.height - y }),
+    )();
 
 const blue = rgb(86 / 255, 107 / 255, 255 / 255);
 
@@ -47,7 +46,7 @@ const config = {
 };
 
 fetch(
-  "https://github.com/googlefonts/opensans/raw/main/fonts/ttf/OpenSans-Regular.ttf"
+  "https://github.com/googlefonts/opensans/raw/main/fonts/ttf/OpenSans-Regular.ttf",
 )
   .then((res) => res.arrayBuffer())
   .then((openSansBytes) => {
@@ -62,7 +61,7 @@ fetch(
 
       if (
         !signature.url.startsWith(
-          "https://psmb-neos-resources.hb.bizmrg.com/"
+          "https://psmb-neos-resources.hb.bizmrg.com/",
         ) &&
         !signature.url.startsWith("https://sfi.ru/")
       ) {
@@ -70,7 +69,7 @@ fetch(
       }
 
       const existingPdfBytes = await fetch(signature.url).then((res) =>
-        res.arrayBuffer()
+        res.arrayBuffer(),
       );
 
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
@@ -110,7 +109,7 @@ fetch(
         "\nДолжность: " +
         signature.signeePosition +
         "\nУникальный программный ключ:\n" +
-        md5(signature.url);
+        signature.signKey;
 
       firstPage.drawText(title, {
         ...compensateRotation({
