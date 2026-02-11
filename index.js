@@ -59,7 +59,6 @@ fetch(
           return res.end("Howdy!");
         }
 
-
         const signature = JSON.parse(decodeURIComponent(atob(queryObject.data)));
 
         if (
@@ -73,28 +72,17 @@ fetch(
           return res.end("Invalid URL");
         }
 
-
         if (!signature.url.toLowerCase().endsWith(".pdf")) {
           res.statusCode = 400;
           return res.end("Not a PDF file");
         }
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 30000);
-
-        let pdfResponse;
-        try {
-          pdfResponse = await fetch(signature.url, { signal: controller.signal });
-        } finally {
-          clearTimeout(timeout);
-        }
-
+        const pdfResponse = await fetch(signature.url, { timeout: 30000 });
 
         if (!pdfResponse.ok) {
           res.statusCode = 404;
           return res.end("PDF not found: " + pdfResponse.status);
         }
-
 
         const existingPdfBytes = await pdfResponse.arrayBuffer();
 
@@ -102,7 +90,6 @@ fetch(
           res.statusCode = 404;
           return res.end("Empty PDF response");
         }
-
 
         const pdfDoc = await PDFDocument.load(existingPdfBytes);
         pdfDoc.registerFontkit(fontkit);
@@ -163,10 +150,10 @@ fetch(
       } catch (err) {
         console.error("Error processing request:", err.message);
         if (!res.headersSent) {
-          res.statusCode = err.name === "AbortError" ? 504 : 500;
-          res.end(err.name === "AbortError" ? "PDF fetch timed out" : "Error: " + err.message);
+          const isTimeout = err.type === "request-timeout";
+          res.statusCode = isTimeout ? 504 : 500;
+          res.end(isTimeout ? "PDF fetch timed out" : "Error: " + err.message);
         }
-
       }
     });
 
