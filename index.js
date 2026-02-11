@@ -31,6 +31,7 @@ const makeCompensateRotation =
             y: x,
           };
         }
+
         return {
           x,
           y: y + height,
@@ -58,6 +59,7 @@ fetch(
           return res.end("Howdy!");
         }
 
+
         const signature = JSON.parse(decodeURIComponent(atob(queryObject.data)));
 
         if (
@@ -71,6 +73,12 @@ fetch(
           return res.end("Invalid URL");
         }
 
+
+        if (!signature.url.toLowerCase().endsWith(".pdf")) {
+          res.statusCode = 400;
+          return res.end("Not a PDF file");
+        }
+
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 30000);
 
@@ -81,10 +89,12 @@ fetch(
           clearTimeout(timeout);
         }
 
+
         if (!pdfResponse.ok) {
           res.statusCode = 404;
           return res.end("PDF not found: " + pdfResponse.status);
         }
+
 
         const existingPdfBytes = await pdfResponse.arrayBuffer();
 
@@ -92,6 +102,7 @@ fetch(
           res.statusCode = 404;
           return res.end("Empty PDF response");
         }
+
 
         const pdfDoc = await PDFDocument.load(existingPdfBytes);
         pdfDoc.registerFontkit(fontkit);
@@ -155,6 +166,7 @@ fetch(
           res.statusCode = err.name === "AbortError" ? 504 : 500;
           res.end(err.name === "AbortError" ? "PDF fetch timed out" : "Error: " + err.message);
         }
+
       }
     });
 
