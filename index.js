@@ -1,4 +1,6 @@
 const http = require("http");
+const fs = require("fs");
+const path = require("path");
 const url = require("url");
 const atob = require("atob");
 const { PDFDocument, rgb } = require("pdf-lib");
@@ -46,118 +48,116 @@ const config = {
   port: process.env.PORT || 8088,
 };
 
-fetch(
-  "https://github.com/googlefonts/opensans/raw/main/fonts/ttf/OpenSans-Regular.ttf",
-)
-  .then((res) => res.arrayBuffer())
-  .then((openSansBytes) => {
-    const server = http.createServer(async (req, res) => {
-      try {
-        const queryObject = url.parse(req.url, true).query;
+const openSansBytes = fs.readFileSync(
+  path.join(__dirname, "OpenSans-Regular.woff"),
+);
 
-        if (!queryObject.data) {
-          return res.end("Howdy!");
-        }
+const server = http.createServer(async (req, res) => {
+  try {
+    const queryObject = url.parse(req.url, true).query;
 
-        const signature = JSON.parse(decodeURIComponent(atob(queryObject.data)));
+    if (!queryObject.data) {
+      return res.end("Howdy!");
+    }
 
-        if (
-          !signature.url ||
-          (!signature.url.startsWith(
-            "https://psmb-neos-resources.hb.bizmrg.com/",
-          ) &&
-            !signature.url.startsWith("https://sfi.ru/"))
-        ) {
-          res.statusCode = 400;
-          return res.end("Invalid URL");
-        }
+    const signature = JSON.parse(decodeURIComponent(atob(queryObject.data)));
 
-        if (!signature.url.toLowerCase().endsWith(".pdf")) {
-          res.statusCode = 400;
-          return res.end("Not a PDF file");
-        }
+    if (
+      !signature.url ||
+      (!signature.url.startsWith(
+        "https://psmb-neos-resources.hb.bizmrg.com/",
+      ) &&
+        !signature.url.startsWith("https://sfi.ru/"))
+    ) {
+      res.statusCode = 400;
+      return res.end("Invalid URL");
+    }
 
-        const pdfResponse = await fetch(signature.url, { timeout: 30000 });
+    if (!signature.url.toLowerCase().endsWith(".pdf")) {
+      res.statusCode = 400;
+      return res.end("Not a PDF file");
+    }
 
-        if (!pdfResponse.ok) {
-          res.statusCode = 404;
-          return res.end("PDF not found: " + pdfResponse.status);
-        }
+    const pdfResponse = await fetch(signature.url, { timeout: 30000 });
 
-        const existingPdfBytes = await pdfResponse.arrayBuffer();
+    if (!pdfResponse.ok) {
+      res.statusCode = 404;
+      return res.end("PDF not found: " + pdfResponse.status);
+    }
 
-        if (!existingPdfBytes || existingPdfBytes.byteLength === 0) {
-          res.statusCode = 404;
-          return res.end("Empty PDF response");
-        }
+    const existingPdfBytes = await pdfResponse.arrayBuffer();
 
-        const pdfDoc = await PDFDocument.load(existingPdfBytes);
-        pdfDoc.registerFontkit(fontkit);
-        const openSansFont = await pdfDoc.embedFont(openSansBytes);
+    if (!existingPdfBytes || existingPdfBytes.byteLength === 0) {
+      res.statusCode = 404;
+      return res.end("Empty PDF response");
+    }
 
-        const pages = pdfDoc.getPages();
-        const firstPage = pages[0];
+    const pdfDoc = await PDFDocument.load(existingPdfBytes);
+    pdfDoc.registerFontkit(fontkit);
+    const openSansFont = await pdfDoc.embedFont(openSansBytes);
 
-        const { height } = firstPage.getSize();
+    const pages = pdfDoc.getPages();
+    const firstPage = pages[0];
 
-        const dimensions = firstPage.getSize();
-        const pageRotation = firstPage.getRotation();
+    const { height } = firstPage.getSize();
 
-        const compensateRotation = makeCompensateRotation({
-          pageRotation,
-          dimensions,
-        });
+    const dimensions = firstPage.getSize();
+    const pageRotation = firstPage.getRotation();
 
-        firstPage.drawRectangle({
-          ...compensateRotation({
-            x: 30,
-            y: 30,
-            height: 100,
-          }),
-          width: 350,
-          height: 100,
-          borderWidth: 2,
-          borderColor: blue,
-          rotate: pageRotation,
-        });
-        const title =
-          "Документ подписан простой электронной подписью\nДата и время подписания: " +
-          signature.signDate +
-          "\nФИО подписавшего документ: " +
-          signature.signee +
-          "\nДолжность: " +
-          signature.signeePosition +
-          "\nУникальный программный ключ:\n" +
-          signature.signKey;
-
-        firstPage.drawText(title, {
-          ...compensateRotation({
-            x: 35,
-            y: 35,
-            height: 10,
-          }),
-          size: 10,
-          font: openSansFont,
-          color: blue,
-          lineHeight: 15,
-          rotate: pageRotation,
-        });
-        const pdfBytes = await pdfDoc.save();
-
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/pdf");
-        res.end(Buffer.from(pdfBytes));
-      } catch (err) {
-        console.error("Error processing request:", err.message);
-        if (!res.headersSent) {
-          const isTimeout = err.type === "request-timeout";
-          res.statusCode = isTimeout ? 504 : 500;
-          res.end(isTimeout ? "PDF fetch timed out" : "Error: " + err.message);
-        }
-      }
+    const compensateRotation = makeCompensateRotation({
+      pageRotation,
+      dimensions,
     });
 
-    server.listen(config.port, () => {
-      console.info(`Server running at http://localhost:${config.port}/`);
+    firstPage.drawRectangle({
+      ...compensateRotation({
+        x: 30,
+        y: 30,
+        height: 100,
+      }),
+      width: 350,
+      height: 100,
+      borderWidth: 2,
+      borderColor: blue,
+      rotate: pageRotation,
     });
-  });
+    const title =
+      "Документ подписан простой электронной подписью\nДата и время подписания: " +
+      signature.signDate +
+      "\nФИО подписавшего документ: " +
+      signature.signee +
+      "\nДолжность: " +
+      signature.signeePosition +
+      "\nУникальный программный ключ:\n" +
+      signature.signKey;
+
+    firstPage.drawText(title, {
+      ...compensateRotation({
+        x: 35,
+        y: 35,
+        height: 10,
+      }),
+      size: 10,
+      font: openSansFont,
+      color: blue,
+      lineHeight: 15,
+      rotate: pageRotation,
+    });
+    const pdfBytes = await pdfDoc.save();
+
+    res.statusCode = 200;
+    res.setHeader("Content-Type", "application/pdf");
+    res.end(Buffer.from(pdfBytes));
+  } catch (err) {
+    console.error("Error processing request:", err.message);
+    if (!res.headersSent) {
+      const isTimeout = err.type === "request-timeout";
+      res.statusCode = isTimeout ? 504 : 500;
+      res.end(isTimeout ? "PDF fetch timed out" : "Error: " + err.message);
+    }
+  }
+});
+
+server.listen(config.port, () => {
+  console.info(`Server running at http://localhost:${config.port}/`);
+});
