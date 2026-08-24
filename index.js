@@ -49,7 +49,7 @@ const config = {
 };
 
 const openSansBytes = fs.readFileSync(
-  path.join(__dirname, "OpenSans-Regular.woff"),
+  path.join(__dirname, "OpenSans-Regular.ttf"),
 );
 
 const server = http.createServer(async (req, res) => {
